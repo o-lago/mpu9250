@@ -6,11 +6,10 @@ import time
 mpu = MPU9250()
 mpu.initialize()
 
-i = 0
+
+time.sleep(10)
 avg = mpu.get_avg()
-
-while avg.N == 0 and i < 5:
-    avg = mpu.get_avg()
-    i += 1
-
+data = mpu.mpuDate
 print (avg.get_json())
+print '#########################'
+print (data.get_json())
