@@ -3,6 +3,8 @@ from datetime import datetime as dtime
 
 
 class MPUData:
+    __DATABASE_STR_FORMAT = "%Y-%m-%d %H:%M:%S"
+
     def __init__(self, g1=nu.float64(0.0), g2=nu.float64(0.0), g3=nu.float64(0.0),
                  a1=nu.float64(0.0), a2=nu.float64(0.0), a3=nu.float64(0.0),
                  m1=nu.float64(0.0), m2=nu.float64(0.0), m3=nu.float64(0.0),
@@ -38,8 +40,8 @@ class MPUData:
             'M2': self.M2,
             'M3': self.M3,
             'Temp': self.Temp,
-            'T': self.T,
-            'TM': self.TM,
+            'T': self.T.strftime(self.__DATABASE_STR_FORMAT),
+            'TM': self.TM.strftime(self.__DATABASE_STR_FORMAT),
             'DT': self.DT,
             'DTM': self.DTM,
             'N': self.N,
