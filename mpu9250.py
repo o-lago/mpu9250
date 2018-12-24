@@ -5,9 +5,6 @@ import smbus2
 from range import *
 from MPUData import *
 from datetime import datetime
-from thread_ticker import TickerThread
-import threading
-import Queue
 
 
 class MPU9250:
@@ -210,8 +207,7 @@ class MPU9250:
         # Give the IMU time to fully initialize and then clear out any bad values from the averages.
         time.sleep(5e-1)  # Make sure it's ready
 
-        h = threading.Thread(target=self.__read_data)
-        h.start()
+        self.__read_data()
 
     def __read_data(self):
         m1 = m2 = m3 = m4 = np.int32(0)
@@ -226,107 +222,83 @@ class MPU9250:
         float_rate_mag = np.float32(100 if self.__lpf.get_rate() > 100 else self.__lpf.get_rate())
         period_mag = np.float32(int(1000.0 / float_rate_mag + 0.5)) / 1000.0
 
-        clock = TickerThread(period=period, q=Queue.Queue(maxsize=0))
-        clock_mag = TickerThread(period=period_mag, q=Queue.Queue(maxsize=0))
-
-        clock.start()
-        clock_mag.start()
-
-        combined = Queue.Queue(maxsize=0)
-
-        def listen_and_forward(queue):
-            while True:
-                combined.put((queue, queue.get()))
-
-        laf = threading.Thread(target=listen_and_forward, args=(clock.get_q(),))
-        laf.daemon = True
-        laf.start()
-        laf = threading.Thread(target=listen_and_forward, args=(clock_mag.get_q(),))
-        laf.daemon = True
-        laf.start()
-
-        self.__QUEUE = Queue.Queue(maxsize=0)
-        laf = threading.Thread(target=listen_and_forward, args=(self.__QUEUE,))
-        laf.daemon = True
-        laf.start()
-
         t0 = datetime.now()
         t0m = datetime.now()
 
         while True:
-            which, message = combined.get()
-            if which is clock.get_q():
-                t = datetime.now()
-                g1 = self.__read_word(MPUREG_GYRO_XOUT_H)
-                g2 = self.__read_word(MPUREG_GYRO_YOUT_H)
-                g3 = self.__read_word(MPUREG_GYRO_ZOUT_H)
-                a1 = self.__read_word(MPUREG_ACCEL_XOUT_H)
-                a2 = self.__read_word(MPUREG_ACCEL_YOUT_H)
-                a3 = self.__read_word(MPUREG_ACCEL_ZOUT_H)
-                tmp = self.__read_word(MPUREG_TEMP_OUT_H)
+            t = datetime.now()
+            g1 = self.__read_word(MPUREG_GYRO_XOUT_H)
+            g2 = self.__read_word(MPUREG_GYRO_YOUT_H)
+            g3 = self.__read_word(MPUREG_GYRO_ZOUT_H)
+            a1 = self.__read_word(MPUREG_ACCEL_XOUT_H)
+            a2 = self.__read_word(MPUREG_ACCEL_YOUT_H)
+            a3 = self.__read_word(MPUREG_ACCEL_ZOUT_H)
+            tmp = self.__read_word(MPUREG_TEMP_OUT_H)
 
-                mm1 = np.float64(m1) * self.mcal1 - self.mpuCalDate.M01
-                mm2 = np.float64(m2) * self.mcal2 - self.mpuCalDate.M02
-                mm3 = np.float64(m3) * self.mcal3 - self.mpuCalDate.M03
+            mm1 = np.float64(m1) * self.mcal1 - self.mpuCalDate.M01
+            mm2 = np.float64(m2) * self.mcal2 - self.mpuCalDate.M02
+            mm3 = np.float64(m3) * self.mcal3 - self.mpuCalDate.M03
 
-                self.mpuDate = MPUData(
-                    g1=(np.float64(g1) - self.mpuCalDate.G01) * self.__gyro_range.get_scale(),
-                    g2=(np.float64(g2) - self.mpuCalDate.G02) * self.__gyro_range.get_scale(),
-                    g3=(np.float64(g3) - self.mpuCalDate.G03) * self.__gyro_range.get_scale(),
-                    a1=(np.float64(a1) - self.mpuCalDate.A01) * self.__accel_range.get_scale(),
-                    a2=(np.float64(a2) - self.mpuCalDate.A02) * self.__accel_range.get_scale(),
-                    a3=(np.float64(a3) - self.mpuCalDate.A03) * self.__accel_range.get_scale(),
-                    m1=self.mpuCalDate.Ms11 * mm1 + self.mpuCalDate.Ms12 * mm2 + self.mpuCalDate.Ms13 * mm3,
-                    m2=self.mpuCalDate.Ms21 * mm1 + self.mpuCalDate.Ms22 * mm2 + self.mpuCalDate.Ms23 * mm3,
-                    m3=self.mpuCalDate.Ms31 * mm1 + self.mpuCalDate.Ms32 * mm2 + self.mpuCalDate.Ms33 * mm3,
-                    temp=np.float64(tmp) / 340 + 36.53, t=t, tm=tm, n=n, nm=nm
-                )
+            self.mpuDate = MPUData(
+                g1=(np.float64(g1) - self.mpuCalDate.G01) * self.__gyro_range.get_scale(),
+                g2=(np.float64(g2) - self.mpuCalDate.G02) * self.__gyro_range.get_scale(),
+                g3=(np.float64(g3) - self.mpuCalDate.G03) * self.__gyro_range.get_scale(),
+                a1=(np.float64(a1) - self.mpuCalDate.A01) * self.__accel_range.get_scale(),
+                a2=(np.float64(a2) - self.mpuCalDate.A02) * self.__accel_range.get_scale(),
+                a3=(np.float64(a3) - self.mpuCalDate.A03) * self.__accel_range.get_scale(),
+                m1=self.mpuCalDate.Ms11 * mm1 + self.mpuCalDate.Ms12 * mm2 + self.mpuCalDate.Ms13 * mm3,
+                m2=self.mpuCalDate.Ms21 * mm1 + self.mpuCalDate.Ms22 * mm2 + self.mpuCalDate.Ms23 * mm3,
+                m3=self.mpuCalDate.Ms31 * mm1 + self.mpuCalDate.Ms32 * mm2 + self.mpuCalDate.Ms33 * mm3,
+                temp=np.float64(tmp) / 340 + 36.53, t=t, tm=tm, n=n, nm=nm
+            )
 
-                avg1 += np.float64(g1)
-                avg2 += np.float64(g2)
-                avg3 += np.float64(g3)
-                ava1 += np.float64(a1)
-                ava2 += np.float64(a2)
-                ava3 += np.float64(a3)
-                avtmp += np.float64(tmp)
-                avm1 += np.int32(m1)
-                avm2 += np.int32(m2)
-                avm3 += np.int32(m3)
-                n += 1
-            elif which is clock_mag.get_q():
-                tm = datetime.now()
-                # Set AK8963 to slave0 for reading
-                self.__write_byte(MPUREG_I2C_SLV0_ADDR, AK8963_I2C_ADDR | READ_FLAG)
+            avg1 += np.float64(g1)
+            avg2 += np.float64(g2)
+            avg3 += np.float64(g3)
+            ava1 += np.float64(a1)
+            ava2 += np.float64(a2)
+            ava3 += np.float64(a3)
+            avtmp += np.float64(tmp)
+            avm1 += np.int32(m1)
+            avm2 += np.int32(m2)
+            avm3 += np.int32(m3)
+            n += 1
+            time.sleep(period)
 
-                # I2C slave 0 register address from where to begin data transfer
-                self.__write_byte(MPUREG_I2C_SLV0_REG, AK8963_HXL)
+            tm = datetime.now()
+            # Set AK8963 to slave0 for reading
+            self.__write_byte(MPUREG_I2C_SLV0_ADDR, AK8963_I2C_ADDR | READ_FLAG)
 
-                # Tell AK8963 that we will read 7 bytes
-                self.__write_byte(MPUREG_I2C_SLV0_CTRL, 0x87)
+            # I2C slave 0 register address from where to begin data transfer
+            self.__write_byte(MPUREG_I2C_SLV0_REG, AK8963_HXL)
 
-                m1 = self.__read_word(MPUREG_EXT_SENS_DATA_00)
-                m2 = self.__read_word(MPUREG_EXT_SENS_DATA_02)
-                m3 = self.__read_word(MPUREG_EXT_SENS_DATA_04)
-                m4 = self.__read_word(MPUREG_EXT_SENS_DATA_06)
+            # Tell AK8963 that we will read 7 bytes
+            self.__write_byte(MPUREG_I2C_SLV0_CTRL, 0x87)
 
-                # Test validity of magnetometer data
-                if (np.byte(m1 & 0xFF) & AKM_DATA_READY) == 0x00 and (np.byte(m1 & 0xFF) & AKM_DATA_OVERRUN) != 0x00:
-                    # MPU9250 mag data not ready or overflow
-                    # MPU9250 m1 LSB: %X\n", byte(m1 & 0xFF)
-                    continue  # Don't update the accumulated values
+            m1 = self.__read_word(MPUREG_EXT_SENS_DATA_00)
+            m2 = self.__read_word(MPUREG_EXT_SENS_DATA_02)
+            m3 = self.__read_word(MPUREG_EXT_SENS_DATA_04)
+            m4 = self.__read_word(MPUREG_EXT_SENS_DATA_06)
 
-                if (np.byte((m4 >> 8) & 0xFF) & AKM_OVERFLOW) != 0x00:
-                    print("MPU9250 mag data overflow")
-                    # MPU9250 mag data overflow
-                    # MPU9250 m4 MSB: %X\n", byte((m1 >> 8) & 0xFF)
-                    continue  # Don 't update the accumulated values
+            # Test validity of magnetometer data
+            if (np.byte(m1 & 0xFF) & AKM_DATA_READY) == 0x00 and (np.byte(m1 & 0xFF) & AKM_DATA_OVERRUN) != 0x00:
+                # MPU9250 mag data not ready or overflow
+                # MPU9250 m1 LSB: %X\n", byte(m1 & 0xFF)
+                continue  # Don't update the accumulated values
 
-                # Update values and increment count of magnetometer readings
-                avm1 += np.int32(m1)
-                avm2 += np.int32(m2)
-                avm3 += np.int32(m3)
-                nm += 1
-            elif which is self.__QUEUE:
+            if (np.byte((m4 >> 8) & 0xFF) & AKM_OVERFLOW) != 0x00:
+                print("MPU9250 mag data overflow")
+                # MPU9250 mag data overflow
+                # MPU9250 m4 MSB: %X\n", byte((m1 >> 8) & 0xFF)
+                continue  # Don 't update the accumulated values
+
+            # Update values and increment count of magnetometer readings
+            avm1 += np.int32(m1)
+            avm2 += np.int32(m2)
+            avm3 += np.int32(m3)
+            nm += 1
+
+            if nm == 5:
                 self.mpuAvgDate = self.__make_avg_mpu_data(
                     avg1=avg1, avg2=avg2, avg3=avg3,
                     ava1=ava1, ava2=ava2, ava3=ava3,
@@ -340,6 +312,7 @@ class MPU9250:
                 n = nm = 0
                 t0 = t
                 t0m = tm
+                print (self.mpuAvgDate.get_json())
 
     def __make_avg_mpu_data(self, avg1, avg2, avg3, ava1, ava2, ava3, avm1, avm2, avm3, avtmp, n, nm, t, tm, t0, t0m):
         mm1 = np.float64(avm1) * self.mcal1 / nm - self.mpuCalDate.M01
