@@ -312,7 +312,7 @@ class MPU9250:
             d.A1 = (self.__avg_data.get_ava1() / self.__avg_data.get_n() - self.mpuCalDate.A01) * self.__accel_range.get_scale()
             d.A2 = (self.__avg_data.get_ava2() / self.__avg_data.get_n() - self.mpuCalDate.A02) * self.__accel_range.get_scale()
             d.A3 = (self.__avg_data.get_ava3() / self.__avg_data.get_n() - self.mpuCalDate.A03) * self.__accel_range.get_scale()
-            d.Temp = (np.float64(self.__avg_data.get_avtmp()) / np.float64(self.__avg_data.get_n())) / 340 + 36.53
+            d.Temp = ((np.float64(self.__avg_data.get_avtmp()) / np.float64(self.__avg_data.get_n())) / 340) + 36.53
             d.N = int(self.__avg_data.get_n() + 0.5)
             d.T = self.__avg_data.get_t()
             timedelta = self.__avg_data.get_t() - self.__avg_data.get_t0()
