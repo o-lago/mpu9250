@@ -30,23 +30,23 @@ class MPUData:
 
     def get_json(self):
         return {
-            'G1': self.G1,
-            'G2': self.G2,
-            'G3': self.G3,
-            'A1': self.A1,
-            'A2': self.A2,
-            'A3': self.A3,
-            'M1': self.M1,
-            'M2': self.M2,
-            'M3': self.M3,
-            'Temp': self.Temp,
-            'T': self.T.strftime(self.__DATABASE_STR_FORMAT),
-            'TM': self.TM.strftime(self.__DATABASE_STR_FORMAT),
-            'DT': self.DT,
-            'DTM': self.DTM,
-            'N': self.N,
-            'NM': self.NM,
-            'MsgError': self.MsgError
+            "G1": self.G1,
+            "G2": self.G2,
+            "G3": self.G3,
+            "A1": self.A1,
+            "A2": self.A2,
+            "A3": self.A3,
+            "M1": self.M1,
+            "M2": self.M2,
+            "M3": self.M3,
+            "Temp": self.Temp,
+            "T": self.T.strftime(self.__DATABASE_STR_FORMAT),
+            "TM": self.TM.strftime(self.__DATABASE_STR_FORMAT),
+            "DT": self.DT,
+            "DTM": self.DTM,
+            "N": self.N,
+            "NM": self.NM,
+            "MsgError": self.MsgError
         }
 
 
@@ -79,22 +79,22 @@ class MPUCalData:
 
     def get_json(self):
         return {
-            'G01': self.G01,
-            'G02': self.G02,
-            'G03': self.G03,
-            'A01': self.A01,
-            'A02': self.A02,
-            'A03': self.A03,
-            'M01': self.M01,
-            'M02': self.M02,
-            'M03': self.M03,
-            'Ms11': self.Ms11,
-            'Ms12': self.Ms12,
-            'Ms13': self.Ms13,
-            'Ms21': self.Ms21,
-            'Ms22': self.Ms22,
-            'Ms23': self.Ms23,
-            'Ms31': self.Ms31,
-            'Ms32': self.Ms32,
-            'Ms33': self.Ms33
+            "G01": self.G01,
+            "G02": self.G02,
+            "G03": self.G03,
+            "A01": self.A01,
+            "A02": self.A02,
+            "A03": self.A03,
+            "M01": self.M01,
+            "M02": self.M02,
+            "M03": self.M03,
+            "Ms11": self.Ms11,
+            "Ms12": self.Ms12,
+            "Ms13": self.Ms13,
+            "Ms21": self.Ms21,
+            "Ms22": self.Ms22,
+            "Ms23": self.Ms23,
+            "Ms31": self.Ms31,
+            "Ms32": self.Ms32,
+            "Ms33": self.Ms33
         }
