@@ -2,6 +2,190 @@ import numpy as nu
 from datetime import datetime as dtime
 
 
+class MPUAvgData:
+    def __init__(self, m1=nu.int32(0), m2=nu.int32(0), m3=nu.int32(0), m4=nu.int32(0),
+                 avg1=nu.float64(0), avg2=nu.float64(0), avg3=nu.float64(0),
+                 ava1=nu.float64(0), ava2=nu.float64(0), ava3=nu.float64(0),
+                 avtmp=nu.float64(0), avm1=nu.int32(0), avm2=nu.int32(0), avm3=nu.int32(0),
+                 n=0, nm=0, t=dtime.now(), tm=dtime.now(), t0=dtime.now(), t0m=dtime.now()):
+        self.__m1 = m1
+        self.__m2 = m2
+        self.__m3 = m3
+        self.__m4 = m4
+        self.__avg1 = avg1
+        self.__avg2 = avg2
+        self.__avg3 = avg3
+        self.__ava1 = ava1
+        self.__ava2 = ava2
+        self.__ava3 = ava3
+        self.__avtmp = avtmp
+        self.__avm1 = avm1
+        self.__avm2 = avm2
+        self.__avm3 = avm3
+        self.__n = n
+        self.__nm = nm
+        self.__t = t
+        self.__tm = tm
+        self.__t0 = t0
+        self.__t0m = t0m
+
+    def set_m1(self, m1):
+        self.__m1 = m1
+
+    def get_m1(self):
+        return self.__m1
+
+    def set_m2(self, m2):
+        self.__m2 = m2
+
+    def get_m2(self):
+        return self.__m2
+
+    def set_m3(self, m3):
+        self.__m3 = m3
+
+    def get_m3(self):
+        return self.__m3
+
+    def set_m4(self, m4):
+        self.__m4 = m4
+
+    def get_m4(self):
+        return self.__m4
+
+    def set_avg1(self, avg1):
+        self.__avg1 = avg1
+
+    def get_avg1(self):
+        return self.__avg1
+
+    def set_avg2(self, avg2):
+        self.__avg2 = avg2
+
+    def get_avg2(self):
+        return self.__avg2
+
+    def set_avg3(self, avg3):
+        self.__avg3 = avg3
+
+    def get_avg3(self):
+        return self.__avg3
+
+    def set_ava1(self, ava1):
+        self.__ava1 = ava1
+
+    def get_ava1(self):
+        return self.__ava1
+
+    def set_ava2(self, ava2):
+        self.__ava2 = ava2
+
+    def get_ava2(self):
+        return self.__ava2
+
+    def set_ava3(self, ava3):
+        self.__ava3 = ava3
+
+    def get_ava3(self):
+        return self.__ava3
+
+    def set_avtmp(self, avtmp):
+        self.__avtmp = avtmp
+
+    def get_avtmp(self):
+        return self.__avtmp
+
+    def set_avm1(self, avm1):
+        self.__avm1 = avm1
+
+    def get_avm1(self):
+        return self.__avm1
+
+    def set_avm2(self, avm2):
+        self.__avm2 = avm2
+
+    def get_avm2(self):
+        return self.__avm2
+
+    def set_avm3(self, avm3):
+        self.__avm3 = avm3
+
+    def get_avm3(self):
+        return self.__avm3
+
+    def set_n(self, n):
+        self.__n = n
+
+    def get_n(self):
+        return self.__n
+
+    def set_nm(self, nm):
+        self.__nm = nm
+
+    def get_nm(self):
+        return self.__nm
+
+    def set_t(self, t):
+        self.__t = t
+
+    def get_t(self):
+        return self.__t
+
+    def set_tm(self, tm):
+        self.__tm = tm
+
+    def get_tm(self):
+        return self.__tm
+
+    def set_t0(self, t0):
+        self.__t0 = t0
+
+    def get_t0(self):
+        return self.__t0
+
+    def set_t0m(self, t0m):
+        self.__t0m = t0m
+
+    def get_t0m(self):
+        return self.__t0m
+
+    def add_avg1(self, avg1):
+        self.__avg1 += nu.float64(avg1)
+
+    def add_avg2(self, avg2):
+        self.__avg2 += nu.float64(avg2)
+
+    def add_avg3(self, avg3):
+        self.__avg3 += nu.float64(avg3)
+
+    def add_ava1(self, ava1):
+        self.__ava1 += nu.float64(ava1)
+
+    def add_ava2(self, ava2):
+        self.__ava2 += nu.float64(ava2)
+
+    def add_ava3(self, ava3):
+        self.__ava3 += nu.float64(ava3)
+
+    def add_avtmp(self, avtmp):
+        self.__avtmp += nu.float64(avtmp)
+
+    def add_avm1(self, avm1):
+        self.__avm1 += nu.int32(avm1)
+
+    def add_avm2(self, avm2):
+        self.__avm2 += nu.int32(avm2)
+
+    def add_avm3(self, avm3):
+        self.__avm3 += nu.int32(avm3)
+
+    def add_n(self, n):
+        self.__n += n
+
+    def add_nm(self, nm):
+        self.__nm += nm
+
+
 class MPUData:
     __DATABASE_STR_FORMAT = "%Y-%m-%d %H:%M:%S"
 

@@ -5,6 +5,7 @@ import smbus2
 from range import *
 from MPUData import *
 from datetime import datetime
+from threading import Thread
 
 
 class MPU9250:
@@ -12,8 +13,8 @@ class MPU9250:
     mcal2 = None
     mcal3 = None
     mpuDate = MPUData()
-    mpuAvgDate = MPUData()
     mpuCalDate = MPUCalData()
+    __avg_data = MPUAvgData()
 
     def __init__(self,
                  address=MPU_ADDRESS,
@@ -209,24 +210,10 @@ class MPU9250:
 
         self.__read_data()
 
-    def __read_data(self):
-        m1 = m2 = m3 = m4 = np.int32(0)
-        avg1 = avg2 = avg3 = ava1 = ava2 = ava3 = avtmp = np.float64(0)
-        avm1 = avm2 = avm3 = np.int32(0)
-        n = nm = 0
-        t = tm = t0 = t0m = datetime.now()
-
-        float_rate = np.float32(self.__lpf.get_rate())
-        period = np.float32(int(1000.0 / float_rate + 0.5)) / 1000.0
-
-        float_rate_mag = np.float32(100 if self.__lpf.get_rate() > 100 else self.__lpf.get_rate())
-        period_mag = np.float32(int(1000.0 / float_rate_mag + 0.5)) / 1000.0
-
-        t0 = datetime.now()
-        t0m = datetime.now()
-
+    def __read_accel_gyro_temp(self, period):
         while True:
-            t = datetime.now()
+            time.sleep(period)
+            self.__avg_data.set_t(datetime.now())
             g1 = self.__read_word(MPUREG_GYRO_XOUT_H)
             g2 = self.__read_word(MPUREG_GYRO_YOUT_H)
             g3 = self.__read_word(MPUREG_GYRO_ZOUT_H)
@@ -235,9 +222,9 @@ class MPU9250:
             a3 = self.__read_word(MPUREG_ACCEL_ZOUT_H)
             tmp = self.__read_word(MPUREG_TEMP_OUT_H)
 
-            mm1 = np.float64(m1) * self.mcal1 - self.mpuCalDate.M01
-            mm2 = np.float64(m2) * self.mcal2 - self.mpuCalDate.M02
-            mm3 = np.float64(m3) * self.mcal3 - self.mpuCalDate.M03
+            mm1 = np.float64(self.__avg_data.get_m1()) * self.mcal1 - self.mpuCalDate.M01
+            mm2 = np.float64(self.__avg_data.get_m2()) * self.mcal2 - self.mpuCalDate.M02
+            mm3 = np.float64(self.__avg_data.get_m3()) * self.mcal3 - self.mpuCalDate.M03
 
             self.mpuDate = MPUData(
                 g1=(np.float64(g1) - self.mpuCalDate.G01) * self.__gyro_range.get_scale(),
@@ -249,23 +236,26 @@ class MPU9250:
                 m1=self.mpuCalDate.Ms11 * mm1 + self.mpuCalDate.Ms12 * mm2 + self.mpuCalDate.Ms13 * mm3,
                 m2=self.mpuCalDate.Ms21 * mm1 + self.mpuCalDate.Ms22 * mm2 + self.mpuCalDate.Ms23 * mm3,
                 m3=self.mpuCalDate.Ms31 * mm1 + self.mpuCalDate.Ms32 * mm2 + self.mpuCalDate.Ms33 * mm3,
-                temp=np.float64(tmp) / 340 + 36.53, t=t, tm=tm, n=n, nm=nm
-            )
+                temp=np.float64(tmp) / 340 + 36.53, t=self.__avg_data.get_t(), tm=self.__avg_data.get_tm(),
+                n=self.__avg_data.get_n(), nm=self.__avg_data.get_nm())
 
-            avg1 += np.float64(g1)
-            avg2 += np.float64(g2)
-            avg3 += np.float64(g3)
-            ava1 += np.float64(a1)
-            ava2 += np.float64(a2)
-            ava3 += np.float64(a3)
-            avtmp += np.float64(tmp)
-            avm1 += np.int32(m1)
-            avm2 += np.int32(m2)
-            avm3 += np.int32(m3)
-            n += 1
+            self.__avg_data.add_avg1(g1)
+            self.__avg_data.add_avg2(g2)
+            self.__avg_data.add_avg3(g3)
+            self.__avg_data.add_ava1(a1)
+            self.__avg_data.add_ava2(a2)
+            self.__avg_data.add_ava3(a3)
+            self.__avg_data.add_avtmp(tmp)
+            self.__avg_data.add_avm1(self.__avg_data.get_m1())
+            self.__avg_data.add_avm2(self.__avg_data.get_m2())
+            self.__avg_data.add_avm3(self.__avg_data.get_m3())
+            self.__avg_data.add_n(1)
+
+    def __read_magnetometer(self, period):
+        while True:
             time.sleep(period)
+            self.__avg_data.set_tm(datetime.now())
 
-            tm = datetime.now()
             # Set AK8963 to slave0 for reading
             self.__write_byte(MPUREG_I2C_SLV0_ADDR, AK8963_I2C_ADDR | READ_FLAG)
 
@@ -275,74 +265,68 @@ class MPU9250:
             # Tell AK8963 that we will read 7 bytes
             self.__write_byte(MPUREG_I2C_SLV0_CTRL, 0x87)
 
-            m1 = self.__read_word(MPUREG_EXT_SENS_DATA_00)
-            m2 = self.__read_word(MPUREG_EXT_SENS_DATA_02)
-            m3 = self.__read_word(MPUREG_EXT_SENS_DATA_04)
-            m4 = self.__read_word(MPUREG_EXT_SENS_DATA_06)
+            self.__avg_data.set_m1(self.__read_word(MPUREG_EXT_SENS_DATA_00))
+            self.__avg_data.set_m2(self.__read_word(MPUREG_EXT_SENS_DATA_02))
+            self.__avg_data.set_m3(self.__read_word(MPUREG_EXT_SENS_DATA_04))
+            self.__avg_data.set_m4(self.__read_word(MPUREG_EXT_SENS_DATA_06))
 
             # Test validity of magnetometer data
-            if (np.byte(m1 & 0xFF) & AKM_DATA_READY) == 0x00 and (np.byte(m1 & 0xFF) & AKM_DATA_OVERRUN) != 0x00:
+            if (np.byte(self.__avg_data.get_m1() & 0xFF) & AKM_DATA_READY) == 0x00 and \
+                    (np.byte(self.__avg_data.get_m1() & 0xFF) & AKM_DATA_OVERRUN) != 0x00:
                 # MPU9250 mag data not ready or overflow
                 # MPU9250 m1 LSB: %X\n", byte(m1 & 0xFF)
                 continue  # Don't update the accumulated values
 
-            if (np.byte((m4 >> 8) & 0xFF) & AKM_OVERFLOW) != 0x00:
+            if (np.byte((self.__avg_data.get_m4() >> 8) & 0xFF) & AKM_OVERFLOW) != 0x00:
                 print("MPU9250 mag data overflow")
                 # MPU9250 mag data overflow
                 # MPU9250 m4 MSB: %X\n", byte((m1 >> 8) & 0xFF)
                 continue  # Don 't update the accumulated values
 
-            # Update values and increment count of magnetometer readings
-            avm1 += np.int32(m1)
-            avm2 += np.int32(m2)
-            avm3 += np.int32(m3)
-            nm += 1
+            self.__avg_data.add_avm1(self.__avg_data.get_m1())
+            self.__avg_data.add_avm2(self.__avg_data.get_m2())
+            self.__avg_data.add_avm3(self.__avg_data.get_m3())
+            self.__avg_data.add_nm(1)
 
-            if nm == 5:
-                self.mpuAvgDate = self.__make_avg_mpu_data(
-                    avg1=avg1, avg2=avg2, avg3=avg3,
-                    ava1=ava1, ava2=ava2, ava3=ava3,
-                    avm1=avm1, avm2=avm2, avm3=avm3,
-                    avtmp=avtmp, n=n, nm=nm, t=t, tm=tm, t0=t0, t0m=t0m
-                )
+    def __read_data(self):
+        float_rate = np.float32(self.__lpf.get_rate())
+        period = np.float32(int(1000.0 / float_rate + 0.5)) / 1000.0
 
-                m1 = m2 = m3 = m4 = np.int32(0)
-                avg1 = avg2 = avg3 = ava1 = ava2 = ava3 = avtmp = np.float64(0)
-                avm1 = avm2 = avm3 = np.int32(0)
-                n = nm = 0
-                t0 = t
-                t0m = tm
-                print (self.mpuAvgDate.get_json())
+        float_rate_mag = np.float32(100 if self.__lpf.get_rate() > 100 else self.__lpf.get_rate())
+        period_mag = np.float32(int(1000.0 / float_rate_mag + 0.5)) / 1000.0
 
-    def __make_avg_mpu_data(self, avg1, avg2, avg3, ava1, ava2, ava3, avm1, avm2, avm3, avtmp, n, nm, t, tm, t0, t0m):
-        mm1 = np.float64(avm1) * self.mcal1 / nm - self.mpuCalDate.M01
-        mm2 = np.float64(avm2) * self.mcal2 / nm - self.mpuCalDate.M02
-        mm3 = np.float64(avm3) * self.mcal3 / nm - self.mpuCalDate.M03
+        Thread(target=self.__read_accel_gyro_temp, args=(period,)).start()
+        Thread(target=self.__read_magnetometer, args=(period_mag,)).start()
+
+    def __make_avg_mpu_data(self):
+        mm1 = np.float64(self.__avg_data.get_avm1()) * self.mcal1 / self.__avg_data.get_nm() - self.mpuCalDate.M01
+        mm2 = np.float64(self.__avg_data.get_avm2()) * self.mcal2 / self.__avg_data.get_nm() - self.mpuCalDate.M02
+        mm3 = np.float64(self.__avg_data.get_avm3()) * self.mcal3 / self.__avg_data.get_nm() - self.mpuCalDate.M03
 
         d = MPUData()
 
-        if n > 0.5:
-            d.G1 = (avg1 / n - self.mpuCalDate.G01) * self.__gyro_range.get_scale()
-            d.G2 = (avg2 / n - self.mpuCalDate.G02) * self.__gyro_range.get_scale()
-            d.G3 = (avg3 / n - self.mpuCalDate.G03) * self.__gyro_range.get_scale()
-            d.A1 = (ava1 / n - self.mpuCalDate.A01) * self.__accel_range.get_scale()
-            d.A2 = (ava2 / n - self.mpuCalDate.A02) * self.__accel_range.get_scale()
-            d.A3 = (ava3 / n - self.mpuCalDate.A03) * self.__accel_range.get_scale()
-            d.Temp = (np.float64(avtmp) / np.float64(n)) / 340 + 36.53
-            d.N = int(n + 0.5)
-            d.T = t
-            timedelta = t - t0
+        if self.__avg_data.get_n() > 0.5:
+            d.G1 = (self.__avg_data.get_avg1() / self.__avg_data.get_n() - self.mpuCalDate.G01) * self.__gyro_range.get_scale()
+            d.G2 = (self.__avg_data.get_avg2() / self.__avg_data.get_n() - self.mpuCalDate.G02) * self.__gyro_range.get_scale()
+            d.G3 = (self.__avg_data.get_avg3() / self.__avg_data.get_n() - self.mpuCalDate.G03) * self.__gyro_range.get_scale()
+            d.A1 = (self.__avg_data.get_ava1() / self.__avg_data.get_n() - self.mpuCalDate.A01) * self.__accel_range.get_scale()
+            d.A2 = (self.__avg_data.get_ava2() / self.__avg_data.get_n() - self.mpuCalDate.A02) * self.__accel_range.get_scale()
+            d.A3 = (self.__avg_data.get_ava3() / self.__avg_data.get_n() - self.mpuCalDate.A03) * self.__accel_range.get_scale()
+            d.Temp = (np.float64(self.__avg_data.get_avtmp()) / np.float64(self.__avg_data.get_n())) / 340 + 36.53
+            d.N = int(self.__avg_data.get_n() + 0.5)
+            d.T = self.__avg_data.get_t()
+            timedelta = self.__avg_data.get_t() - self.__avg_data.get_t0()
             d.DT = timedelta.microseconds / 1000  # ms
         else:
             d.MsgError = 'MPU9250 Error: No new accel/gyro values'
 
-        if nm > 0:
+        if self.__avg_data.get_nm() > 0:
             d.M1 = self.mpuCalDate.Ms11 * mm1 + self.mpuCalDate.Ms12 * mm2 + self.mpuCalDate.Ms13 * mm3
             d.M2 = self.mpuCalDate.Ms21 * mm1 + self.mpuCalDate.Ms22 * mm2 + self.mpuCalDate.Ms23 * mm3
             d.M3 = self.mpuCalDate.Ms31 * mm1 + self.mpuCalDate.Ms32 * mm2 + self.mpuCalDate.Ms33 * mm3
-            d.NM = int(nm + 0.5)
-            d.TM = tm
-            timedeltam = tm - t0m
+            d.NM = int(self.__avg_data.get_nm() + 0.5)
+            d.TM = self.__avg_data.get_tm()
+            timedeltam = self.__avg_data.get_tm() - self.__avg_data.get_t0m()
             d.DTM = timedeltam.microseconds / 1000  # ms
         else:
             d.MsgError = 'MPU9250 Error: No new magnetometer values'
@@ -350,5 +334,9 @@ class MPU9250:
         return d
 
     def get_avg(self):
-        self.__QUEUE.put(0)
-        return self.mpuAvgDate
+        mpu_avg_data = self.__make_avg_mpu_data()
+        t0 = self.__avg_data.get_t()
+        t0m = self.__avg_data.get_tm()
+        self.__avg_data = MPUAvgData(t0=t0, t0m=t0m)
+
+        return mpu_avg_data
