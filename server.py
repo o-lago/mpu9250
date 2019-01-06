@@ -21,7 +21,7 @@ mpu.initialize()
 class index:
 
     def GET(self):
-        avg = mpu.get_avg()
+        avg = mpu.mpuDate
 
         gx = avg.G1  # (avg.G1 - float(-48.4827)) * _RATIO_GYRO
         gy = avg.G2  # (avg.G2 - float(+76.3552)) * _RATIO_GYRO
@@ -55,7 +55,7 @@ class index:
               }
         """
 
-        return str(gx * float(180) / math.pi) + ' ' + str(gy * float(180) / math.pi)
+        return str(phi * float(180) / math.pi) + ' ' + str(theta * float(180) / math.pi)
 
 
 if __name__ == "__main__":
