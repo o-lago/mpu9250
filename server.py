@@ -23,15 +23,15 @@ class index:
     def GET(self):
         avg = mpu.get_avg()
 
-        gx = (avg.G1 - float(-48.4827)) * _RATIO_GYRO
-        gy = (avg.G2 - float(+76.3552)) * _RATIO_GYRO
-        gz = (avg.G3 - float(+64.3234)) * _RATIO_GYRO
-        ax = avg.A1 * _RATIO_ACC
-        ay = avg.A2 * _RATIO_ACC
-        az = avg.A3 * _RATIO_ACC
-        mx = avg.M1 * _RATIO_MAG
-        my = avg.M2 * _RATIO_MAG
-        mz = avg.M3 * _RATIO_MAG
+        gx = avg.G1  # (avg.G1 - float(-48.4827)) * _RATIO_GYRO
+        gy = avg.G2  # (avg.G2 - float(+76.3552)) * _RATIO_GYRO
+        gz = avg.G3  # (avg.G3 - float(+64.3234)) * _RATIO_GYRO
+        ax = avg.A1  # avg.A1 * _RATIO_ACC
+        ay = avg.A2  # avg.A2 * _RATIO_ACC
+        az = avg.A3  # avg.A3 * _RATIO_ACC
+        mx = avg.M1  # avg.M1 * _RATIO_MAG
+        my = avg.M2  # avg.M2 * _RATIO_MAG
+        mz = avg.M3  # avg.M3 * _RATIO_MAG
 
         kf = KalmanFilter()
 
@@ -55,7 +55,7 @@ class index:
               }
         """
 
-        return str(phi) + ' ' + str(theta)
+        return str(gx * float(180) / math.pi) + ' ' + str(gy * float(180) / math.pi)
 
 
 if __name__ == "__main__":
